@@ -1604,7 +1604,7 @@ def get_all_addresses():
     addresses = []
     for iface in ifaddr.get_adapters():
         for addr in iface.ips:
-            if addr.network_prefix == HOST_ONLY_NETWORK_MASK & len(re.split(addr.ip, ".")) == 4: addresses.append(
+            if addr.network_prefix == HOST_ONLY_NETWORK_MASK & len(addr.ip.split(".")) == 4: addresses.append(
                 addr.ip)
     return addresses
 
