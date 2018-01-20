@@ -1,5 +1,6 @@
 from __future__ import (
     absolute_import, division, print_function, unicode_literals)
+
 """ Multicast DNS Service Discovery for Python, v0.14-wmcbrine
     Copyright 2003 Paul Scott-Murphy, 2014 William McBrine
 
@@ -43,13 +44,11 @@ __maintainer__ = 'Jakub Stasiak <jakub@stasiak.at>'
 __version__ = '0.19.1'
 __license__ = 'LGPL'
 
-
 __all__ = [
     "__version__",
     "Zeroconf", "ServiceInfo", "ServiceBrowser",
     "Error", "InterfaceChoice", "ServiceStateChange",
 ]
-
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -151,7 +150,6 @@ _HAS_ONLY_A_TO_Z_NUM_HYPHEN = re.compile(r'^[A-Za-z0-9\-]+$')
 _HAS_ASCII_CONTROL_CHARS = re.compile(r'[\x00-\x1f\x7f]')
 
 
-
 @enum.unique
 class InterfaceChoice(enum.Enum):
     Default = 1
@@ -166,7 +164,6 @@ class ServiceStateChange(enum.Enum):
 
 # CIDR notation for 255.255.255.255
 HOST_ONLY_NETWORK_MASK = 32
-
 
 
 # utility functions
@@ -308,6 +305,7 @@ class AbstractMethodException(Error):
 class BadTypeInNameException(Error):
     pass
 
+
 # implementation classes
 
 
@@ -341,7 +339,6 @@ class QuietLogger(object):
 
 
 class DNSEntry(object):
-
     """A DNS entry"""
 
     def __init__(self, name, type_, class_):
@@ -389,7 +386,6 @@ class DNSEntry(object):
 
 
 class DNSQuestion(DNSEntry):
-
     """A DNS question entry"""
 
     def __init__(self, name, type_, class_):
@@ -407,7 +403,6 @@ class DNSQuestion(DNSEntry):
 
 
 class DNSRecord(DNSEntry):
-
     """A DNS record - like a DNS entry, but has a TTL"""
 
     def __init__(self, name, type_, class_, ttl):
@@ -463,15 +458,15 @@ class DNSRecord(DNSEntry):
         """Abstract method"""
         raise AbstractMethodException
 
-    def to_string(self, other):
-        """String representation with additional information"""
+    def to_string(self, other, **kwargs):
+        """String representation with additional information
+        """
         arg = "%s/%s,%s" % (
             self.ttl, self.get_remaining_ttl(current_time_millis()), other)
         return DNSEntry.to_string(self, "record", arg)
 
 
 class DNSAddress(DNSRecord):
-
     """A DNS address record"""
 
     def __init__(self, name, type_, class_, ttl, address):
@@ -500,7 +495,6 @@ class DNSAddress(DNSRecord):
 
 
 class DNSHinfo(DNSRecord):
-
     """A DNS host information record"""
 
     def __init__(self, name, type_, class_, ttl, cpu, os):
@@ -534,7 +528,6 @@ class DNSHinfo(DNSRecord):
 
 
 class DNSPointer(DNSRecord):
-
     """A DNS pointer record"""
 
     def __init__(self, name, type_, class_, ttl, alias):
@@ -556,11 +549,10 @@ class DNSPointer(DNSRecord):
 
     def __repr__(self):
         """String representation"""
-        return self.to_string(self.alias)
+        return self.to_string(self.alias, )
 
 
 class DNSText(DNSRecord):
-
     """A DNS text record"""
 
     def __init__(self, name, type_, class_, ttl, text):
@@ -584,13 +576,12 @@ class DNSText(DNSRecord):
     def __repr__(self):
         """String representation"""
         if len(self.text) > 10:
-            return self.to_string(self.text[:7]) + "..."
+            return self.to_string(self.text[:7], ) + "..."
         else:
             return self.to_string(self.text)
 
 
 class DNSService(DNSRecord):
-
     """A DNS service record"""
 
     def __init__(self, name, type_, class_, ttl,
@@ -623,11 +614,10 @@ class DNSService(DNSRecord):
 
     def __repr__(self):
         """String representation"""
-        return self.to_string("%s:%s" % (self.server, self.port))
+        return self.to_string("%s:%s" % (self.server, self.port), )
 
 
 class DNSIncoming(QuietLogger):
-
     """Object representation of an incoming DNS packet"""
 
     def __init__(self, data):
@@ -782,7 +772,6 @@ class DNSIncoming(QuietLogger):
 
 
 class DNSOutgoing(object):
-
     """Object representation of an outgoing packet"""
 
     def __init__(self, flags, multicast=True):
@@ -808,7 +797,7 @@ class DNSOutgoing(object):
             'answers=%s' % self.answers,
             'authorities=%s' % self.authorities,
             'additionals=%s' % self.additionals,
-        ])
+            ])
 
     class State(enum.Enum):
         init = 0
@@ -929,6 +918,7 @@ class DNSOutgoing(object):
         """
 
         # split name into each label
+        global count
         parts = name.split('.')
         if not parts[-1]:
             parts.pop()
@@ -1036,7 +1026,6 @@ class DNSOutgoing(object):
 
 
 class DNSCache(object):
-
     """A cache of DNS entries"""
 
     def __init__(self):
@@ -1098,7 +1087,6 @@ class DNSCache(object):
 
 
 class Engine(threading.Thread):
-
     """An engine wraps read access to sockets, allowing objects that
     need to receive data from sockets to be called back when the
     sockets are ready.
@@ -1155,7 +1143,6 @@ class Engine(threading.Thread):
 
 
 class Listener(QuietLogger):
-
     """A Listener is used by this module to listen on the multicast
     group to which DNS messages are sent, allowing the implementation
     to cache information as it arrives.
@@ -1170,6 +1157,7 @@ class Listener(QuietLogger):
     def handle_read(self, socket_):
         try:
             data, (addr, port) = socket_.recvfrom(_MAX_MSG_ABSOLUTE)
+            # TODO: Catch proper exceptions
         except Exception:
             self.log_exception_warning()
             return
@@ -1197,7 +1185,6 @@ class Listener(QuietLogger):
 
 
 class Reaper(threading.Thread):
-
     """A Reaper is used by this module to remove cache entries that
     have expired."""
 
@@ -1247,7 +1234,6 @@ class SignalRegistrationInterface(object):
 
 
 class ServiceBrowser(threading.Thread):
-
     """Used to browse for a service of a specific type.
 
     The listener object will have its add_service() and
@@ -1288,6 +1274,7 @@ class ServiceBrowser(threading.Thread):
                     listener.remove_service(*args)
                 else:
                     raise NotImplementedError(state_change)
+
             handlers.append(on_change)
 
         for h in handlers:
@@ -1366,7 +1353,6 @@ class ServiceBrowser(threading.Thread):
 
 
 class ServiceInfo(object):
-
     """Service information"""
 
     def __init__(self, type_, name, address=None, port=None, weight=0,
@@ -1577,6 +1563,7 @@ class ZeroconfServiceTypes(object):
     """
     Return all of the advertised services on any local networks
     """
+
     def __init__(self):
         self.found_services = set()
 
@@ -1617,7 +1604,8 @@ def get_all_addresses():
     addresses = []
     for iface in ifaddr.get_adapters():
         for addr in iface.ips:
-            if addr.network_prefix == HOST_ONLY_NETWORK_MASK & len(split(addr.ip, ".")) == 4: addresses.append(addr.ip)
+            if addr.network_prefix == HOST_ONLY_NETWORK_MASK & len(re.split(addr.ip, ".")) == 4: addresses.append(
+                addr.ip)
     return addresses
 
 
@@ -1669,15 +1657,14 @@ def get_errno(e):
 
 
 class Zeroconf(QuietLogger):
-
     """Implementation of Zeroconf Multicast DNS Service Discovery
 
     Supports registration, unregistration, queries and browsing.
     """
 
     def __init__(
-        self,
-        interfaces=InterfaceChoice.All,
+            self,
+            interfaces=InterfaceChoice.All,
     ):
         """Creates an instance of the Zeroconf class, establishing
         multicast communications, listening and reaping threads.
@@ -2046,7 +2033,7 @@ class Zeroconf(QuietLogger):
                 return
             try:
                 bytes_sent = s.sendto(packet, 0, (addr, port))
-            except Exception:   # TODO stop catching all Exceptions
+            except Exception:  # TODO stop catching all Exceptions
                 # on send errors, log the exception and keep going
                 self.log_exception_warning()
             else:
