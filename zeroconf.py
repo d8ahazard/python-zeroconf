@@ -1,3 +1,5 @@
+from __future__ import (
+    absolute_import, division, print_function, unicode_literals)
 """ Multicast DNS Service Discovery for Python, v0.14-wmcbrine
     Copyright 2003 Paul Scott-Murphy, 2014 William McBrine
 
@@ -33,6 +35,8 @@ import time
 from functools import reduce
 
 import ifaddr
+from six import binary_type, indexbytes, int2byte, iteritems, text_type
+from six.moves import xrange
 
 __author__ = 'Paul Scott-Murphy, William McBrine'
 __maintainer__ = 'Jakub Stasiak <jakub@stasiak.at>'
@@ -146,7 +150,6 @@ _HAS_A_TO_Z = re.compile(r'[A-Za-z]')
 _HAS_ONLY_A_TO_Z_NUM_HYPHEN = re.compile(r'^[A-Za-z0-9\-]+$')
 _HAS_ASCII_CONTROL_CHARS = re.compile(r'[\x00-\x1f\x7f]')
 
-int2byte = struct.Struct(">B").pack
 
 
 @enum.unique
@@ -308,7 +311,7 @@ class BadTypeInNameException(Error):
 # implementation classes
 
 
-class QuietLogger:
+class QuietLogger(object):
     _seen_logs = {}
 
     @classmethod
@@ -337,7 +340,7 @@ class QuietLogger:
         logger(*args)
 
 
-class DNSEntry:
+class DNSEntry(object):
 
     """A DNS entry"""
 
@@ -665,7 +668,7 @@ class DNSIncoming(QuietLogger):
 
     def read_questions(self):
         """Reads questions section of packet"""
-        for i in range(self.num_questions):
+        for i in xrange(self.num_questions):
             name = self.read_name()
             type_, class_ = self.unpack(b'!HH')
 
@@ -678,7 +681,7 @@ class DNSIncoming(QuietLogger):
 
     def read_character_string(self):
         """Reads a character string from the packet"""
-        length = self.data[self.offset]
+        length = indexbytes(self.data, self.offset)
         self.offset += 1
         return self.read_string(length)
 
@@ -696,7 +699,7 @@ class DNSIncoming(QuietLogger):
         """Reads the answers, authorities and additionals section of the
         packet"""
         n = self.num_answers + self.num_authorities + self.num_additionals
-        for i in range(n):
+        for i in xrange(n):
             domain = self.read_name()
             type_, class_, ttl, length = self.unpack(b'!HHiH')
 
@@ -741,7 +744,7 @@ class DNSIncoming(QuietLogger):
 
     def read_utf(self, offset, length):
         """Reads a UTF-8 string of a given length from the packet"""
-        return str(self.data[offset:offset + length], 'utf-8', 'replace')
+        return text_type(self.data[offset:offset + length], 'utf-8', 'replace')
 
     def read_name(self):
         """Reads a domain name from the packet"""
@@ -751,7 +754,7 @@ class DNSIncoming(QuietLogger):
         first = off
 
         while True:
-            length = self.data[off]
+            length = indexbytes(self.data, off)
             off += 1
             if length == 0:
                 break
@@ -762,7 +765,7 @@ class DNSIncoming(QuietLogger):
             elif t == 0xC0:
                 if next_ < 0:
                     next_ = off + 1
-                off = ((length & 0x3F) << 8) | self.data[off]
+                off = ((length & 0x3F) << 8) | indexbytes(self.data, off)
                 if off >= first:
                     raise IncomingDecodeError(
                         "Bad domain name (circular) at %s" % (off,))
@@ -778,7 +781,7 @@ class DNSIncoming(QuietLogger):
         return result
 
 
-class DNSOutgoing:
+class DNSOutgoing(object):
 
     """Object representation of an outgoing packet"""
 
@@ -1032,7 +1035,7 @@ class DNSOutgoing:
         return b''.join(self.data)
 
 
-class DNSCache:
+class DNSCache(object):
 
     """A cache of DNS entries"""
 
@@ -1216,7 +1219,7 @@ class Reaper(threading.Thread):
                     self.zc.cache.remove(record)
 
 
-class Signal:
+class Signal(object):
     def __init__(self):
         self._handlers = []
 
@@ -1229,7 +1232,7 @@ class Signal:
         return SignalRegistrationInterface(self._handlers)
 
 
-class SignalRegistrationInterface:
+class SignalRegistrationInterface(object):
 
     def __init__(self, handlers):
         self._handlers = handlers
@@ -1362,7 +1365,7 @@ class ServiceBrowser(threading.Thread):
                 handler(self.zc)
 
 
-class ServiceInfo:
+class ServiceInfo(object):
 
     """Service information"""
 
@@ -1405,15 +1408,15 @@ class ServiceInfo:
             self._properties = properties
             list_ = []
             result = b''
-            for key, value in properties.items():
-                if isinstance(key, str):
+            for key, value in iteritems(properties):
+                if isinstance(key, text_type):
                     key = key.encode('utf-8')
 
                 if value is None:
                     suffix = b''
-                elif isinstance(value, str):
+                elif isinstance(value, text_type):
                     suffix = value.encode('utf-8')
-                elif isinstance(value, bytes):
+                elif isinstance(value, binary_type):
                     suffix = value
                 elif isinstance(value, int):
                     if value:
@@ -1437,7 +1440,7 @@ class ServiceInfo:
         index = 0
         strs = []
         while index < end:
-            length = text[index]
+            length = indexbytes(text, index)
             index += 1
             strs.append(text[index:index + length])
             index += length
@@ -1570,7 +1573,7 @@ class ServiceInfo:
         )
 
 
-class ZeroconfServiceTypes:
+class ZeroconfServiceTypes(object):
     """
     Return all of the advertised services on any local networks
     """
@@ -1685,7 +1688,7 @@ class Zeroconf(QuietLogger):
         self._GLOBAL_DONE = False
 
         self._listen_socket = new_socket()
-        interfaces = normalize_interface_choice(interfaces, socket.AF_INET)
+        interfaces = normalize_interface_choice(interfaces)
 
         self._respond_sockets = []
 

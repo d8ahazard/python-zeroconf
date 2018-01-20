@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import absolute_import, division, print_function
 from io import open
 
 from os.path import abspath, dirname, join
@@ -53,7 +54,9 @@ setup(
         'mDNS',
     ],
     install_requires=[
+        'enum-compat',
         'ifaddr',
-        'ipaddress'
+        'ipaddress',
+        'six'
     ],
 )
